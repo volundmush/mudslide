@@ -1,0 +1,8 @@
+honahlee
+django == 3.1b1
+channels == 2.4.0
+djangorestframework == 3.11.0
+django-filter == 2.3.0
+django-sekizai
+ujson >= 3.0.0
+hypercorn == 0.10.1
