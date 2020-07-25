@@ -24,6 +24,7 @@ class BaseConfig(HonahleeConfig):
     def _config_classes(self):
         super()._config_classes()
         self.classes['services']['connect_screen'] = 'mudslide.services.conscreen.ConnectScreenService'
+        self.classes['services']['connections'] = 'mudslide.services.connections.ConnectionService'
         self.classes['services']['web'] = 'mudslide.services.web.WebService'
         self.classes['protocols']['telnet'] = 'mudslide.protocols.telnet.TelnetAsgiProtocol'
         self.classes['consumers']['telnet'] = 'mudslide.protocols.telnet.AsyncTelnetConsumer'

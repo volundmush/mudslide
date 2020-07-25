@@ -728,7 +728,7 @@ class TelnetAsgiProtocol(AsgiAdapterProtocol):
         print(f"GOT USER COMMAND: {command}")
         await self.to_app.put(event)
 
-    async def send_data(self, data):
+    async def send_bytes(self, data):
         """
         Run transforms on all outgoing data before sending to transport.
 
@@ -740,6 +740,15 @@ class TelnetAsgiProtocol(AsgiAdapterProtocol):
             data = handler.write_transform(data)
         await self.write_data(data)
 
+    async def send_data(self, data):
+        """
+        Convert from OOB format to whatever the client supports... if anything.
+
+        Args:
+            data:
+        """
+        await self.send_bytes(data)
+
     async def handle_event(self, event):
         """
         This isn't NECESSARILY events just from the ASGI app. It might also be outgoing
@@ -747,10 +756,12 @@ class TelnetAsgiProtocol(AsgiAdapterProtocol):
         """
         if event["type"] == "text":
             await self.send_text(event["data"])
+        if event["type"] == "prompt":
+            await self.send_prompt(event["data"])
         elif event["type"] == "subnegotiate":
-            await self.send_data(TCODES_BYTES["IAC"] + TCODES_BYTES["SB"] + event["op_code"] + event['data'] + TCODES_BYTES["IAC"] + TCODES_BYTES["SE"])
+            await self.send_bytes(TCODES_BYTES["IAC"] + TCODES_BYTES["SB"] + event["op_code"] + event['data'] + TCODES_BYTES["IAC"] + TCODES_BYTES["SE"])
         elif event["type"] == "negotiate":
-            await self.send_data(TCODES_BYTES["IAC"] + event["command"] + event["op_code"])
+            await self.send_bytes(TCODES_BYTES["IAC"] + event["command"] + event["op_code"])
         else:
             print("GOD ONLY KNOWS WHAT HAPPENED HERE")
         if (callback := event.get('callback', None)):
@@ -758,14 +769,26 @@ class TelnetAsgiProtocol(AsgiAdapterProtocol):
 
     async def send_text(self, text):
         """
+        Ensures that text sent to client will have a newline ending.
 
         Args:
             text (str): The utf-8 text to send.
-
-        Returns:
-
         """
-        await self.send_data(text.encode("ascii"))
+        if not text.endswith('\r\n'):
+            text += '\r\n'
+        await self.send_bytes(text.encode("ascii"))
+
+    async def send_prompt(self, text):
+        """
+        Ensures that text sent to client will have an IAC + GA ending for telnet prompts.
+
+        Args:
+            text (str): The utf-8 text to send.
+        """
+        prompt = TCODES_BYTES['IAC'] + TCODES_BYTES['GA']
+        if not text.endswith(prompt):
+            text += prompt
+        await self.send_bytes(text.encode("ascii"))
 
     async def generate_connect(self):
         await self.to_app.put({

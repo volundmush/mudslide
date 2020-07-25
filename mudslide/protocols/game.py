@@ -38,6 +38,7 @@ class AsyncGameConsumerMixin:
         Args:
             reason (str): The reason for this closing.
         """
+        self.app.services['connections'].unregister_connection(self)
         raise StopConsumer(reason)
 
     async def game_input(self, cmd, *args, **kwargs):
@@ -60,7 +61,7 @@ class AsyncGameConsumerMixin:
         """
         This is called when a client has finished all protocol-level setup and is ready to begin talking to game logic.
         """
-        self.app.services['network'].register_connection(self)
+        self.app.services['connections'].register_connection(self)
         await self.game_connect_screen()
 
     async def game_connect_screen(self):
@@ -68,6 +69,6 @@ class AsyncGameConsumerMixin:
         This sends the Connect Screen to this client.
         """
         await self.send({
-            'type': 'game.text',
+            'type': 'text',
             'data': self.app.services['connect_screen'].render(self)
         })
