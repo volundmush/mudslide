@@ -2,7 +2,8 @@ import zlib
 import asyncio
 
 from channels.consumer import AsyncConsumer
-from honahlee.protocols.base import AsgiAdapterProtocol, AsyncGameConsumerMixin
+from honahlee.protocols.base import AsgiAdapterProtocol
+from mudslide.protocols.game import AsyncGameConsumerMixin
 
 # Much of this code has been adapted from the Evennia project https://github.com/evennia/evennia
 # twisted.conch.telnet was also used for inspiration.

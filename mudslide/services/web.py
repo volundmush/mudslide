@@ -95,13 +95,14 @@ class WebService(BaseService):
     def __init__(self):
         super().__init__()
         self.task = None
-        self.config = None
+        self.config = self.app.config.hyper_config
         self.asgi_app = None
         self.consumer_classes = dict()
 
     async def setup(self):
-        self.consumer_classes = self.app.config.classes['consumers']
+        self.consumer_classes = self.app.classes['consumers']
         self.asgi_app = ProtocolTypeRouter(self.get_protocol_router_config())
+        print(self.asgi_app)
 
     def get_protocol_router_config(self):
         return {

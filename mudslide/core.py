@@ -23,12 +23,14 @@ class BaseConfig(HonahleeConfig):
 
     def _config_classes(self):
         super()._config_classes()
-
+        self.classes['services']['connect_screen'] = 'mudslide.services.conscreen.ConnectScreenService'
+        self.classes['services']['web'] = 'mudslide.services.web.WebService'
         self.classes['protocols']['telnet'] = 'mudslide.protocols.telnet.TelnetAsgiProtocol'
         self.classes['consumers']['telnet'] = 'mudslide.protocols.telnet.AsyncTelnetConsumer'
         self.classes['consumers']['game'] = 'mudslide.services.web.GameConsumer'
         self.classes['consumers']['link'] = 'mudslide.services.web.LinkConsumer'
         self.classes['consumers']['lifespan'] = 'mudslide.services.web.LifespanAsyncConsumer'
+
 
     def _config_django(self):
         d = self.django_settings
