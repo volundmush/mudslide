@@ -1,5 +1,6 @@
 from channels.consumer import StopConsumer
 from channels.auth import login, logout
+from honahlee.utils.misc import lazy_property
 
 
 class AsyncGameConsumerMixin:
@@ -9,7 +10,6 @@ class AsyncGameConsumerMixin:
     """
     # This is a class property that will be set to the CORE APPLICATION.
     app = None
-    service = None
 
     def game_setup(self):
         self.game_id = None
@@ -25,6 +25,10 @@ class AsyncGameConsumerMixin:
         """
         await login(self.scope, account)
         self.logged_in = True
+        await self.at_game_login()
+
+    async def at_game_login(self):
+        pass
 
     async def game_logout(self):
         await logout(self.scope)
@@ -48,8 +52,9 @@ class AsyncGameConsumerMixin:
         if not self.conn_id:
             # If this connection is not yet registered, ignore all input.
             return
-        if (func := self.app.input_funcs.get(cmd, None)):
-            await func(self, cmd, *args, **kwargs)
+        inp = self.app.services['input']
+        func = getattr(inp, f'input_{cmd}', inp.unrecognized_input)
+        await func(self, cmd, *args, **kwargs)
 
     async def game_link(self, game):
         pass
@@ -72,3 +77,16 @@ class AsyncGameConsumerMixin:
             'type': 'text',
             'data': self.app.services['connect_screen'].render(self)
         })
+
+    @lazy_property
+    def cmd(self):
+        handler = self.app.classes['mudslide']['cmdhandler']
+        return handler(self)
+
+    @lazy_property
+    def cmdset(self):
+        handler = self.app.classes['mudslide']['cmdsethandler']
+        return handler(self)
+
+    def is_authenticated(self):
+        return False

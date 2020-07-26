@@ -756,7 +756,7 @@ class TelnetAsgiProtocol(AsgiAdapterProtocol):
         """
         if event["type"] == "text":
             await self.send_text(event["data"])
-        if event["type"] == "prompt":
+        elif event["type"] == "prompt":
             await self.send_prompt(event["data"])
         elif event["type"] == "subnegotiate":
             await self.send_bytes(TCODES_BYTES["IAC"] + TCODES_BYTES["SB"] + event["op_code"] + event['data'] + TCODES_BYTES["IAC"] + TCODES_BYTES["SE"])
@@ -764,6 +764,7 @@ class TelnetAsgiProtocol(AsgiAdapterProtocol):
             await self.send_bytes(TCODES_BYTES["IAC"] + event["command"] + event["op_code"])
         else:
             print("GOD ONLY KNOWS WHAT HAPPENED HERE")
+            print(event)
         if (callback := event.get('callback', None)):
             callback()
 
@@ -799,7 +800,6 @@ class TelnetAsgiProtocol(AsgiAdapterProtocol):
 
 class AsyncTelnetConsumer(AsyncConsumer, AsyncGameConsumerMixin):
     app = None
-    service = None
 
     def __init__(self, scope):
         super().__init__(scope)

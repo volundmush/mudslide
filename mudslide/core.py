@@ -31,7 +31,14 @@ class BaseConfig(HonahleeConfig):
         self.classes['consumers']['game'] = 'mudslide.services.web.GameConsumer'
         self.classes['consumers']['link'] = 'mudslide.services.web.LinkConsumer'
         self.classes['consumers']['lifespan'] = 'mudslide.services.web.LifespanAsyncConsumer'
+        self.classes['services']['input'] = 'mudslide.services.input.InputService'
+        self.classes['services']['entity'] = 'mudslide.services.entity.EntityService'
+        self.classes['services']['account'] = 'mudslide.services.account.AccountService'
 
+        self.classes['commands_login']['connect'] = 'mudslide.commands.login.ConnectCommand'
+        self.classes['commands_login']['create'] = 'mudslide.commands.login.CreateCommand'
+        self.classes['commands_login']['help'] = 'mudslide.commands.login.HelpCommand'
+        self.classes['commands_login']['look'] = 'mudslide.commands.login.LookCommand'
 
     def _config_django(self):
         d = self.django_settings

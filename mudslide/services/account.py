@@ -1,5 +1,5 @@
 from honahlee.core import BaseService
 
 
-class EntityService(BaseService):
+class AccountService(BaseService):
     pass

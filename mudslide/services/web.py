@@ -102,7 +102,6 @@ class WebService(BaseService):
     async def setup(self):
         self.consumer_classes = self.app.classes['consumers']
         self.asgi_app = ProtocolTypeRouter(self.get_protocol_router_config())
-        print(self.asgi_app)
 
     def get_protocol_router_config(self):
         return {
