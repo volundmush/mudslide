@@ -1,5 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
+from django.utils.translation import ugettext_lazy as _
 
 
 class Host(models.Model):
@@ -21,13 +22,11 @@ class Entity(models.Model):
     """
     The shared ID space for all Entities such as Accounts, Games, and Channels.
     """
+    uuid = models.UUIDField(unique=True, null=False)
     entity_type = models.ForeignKey(EntityType, related_name='entities', on_delete=models.PROTECT)
     date_created = models.DateTimeField(null=False)
     name = models.CharField(max_length=255, null=False, blank=False)
     iname = models.CharField(max_length=255, null=False, blank=False)
-
-    class Meta:
-        unique_together = (('entity_type', 'iname'))
 
 
 class BanEntry(models.Model):
@@ -46,9 +45,12 @@ class Account(AbstractUser):
     """
     Django User with some modifications.
     """
-    id = models.OneToOneField(Entity, primary_key=True, on_delete=models.PROTECT)
+    id = models.OneToOneField(Entity, primary_key=True, on_delete=models.PROTECT, related_name='account_component')
     banned = models.ForeignKey(BanEntry, related_name='active', null=True, on_delete=models.PROTECT)
     total_playtime = models.DurationField(null=False)
+    email = models.EmailField(_('email address'), blank=True, null=True, unique=True)
+
+    REQUIRED_FIELDS = ['username']
 
 
 class LoginRecord(models.Model):
@@ -69,7 +71,7 @@ class GameEntry(models.Model):
     All Games have an owner and a unique identifier per their owner. This might be
     'main' or 'dev' or 'special' or whatever.
     """
-    entity = models.OneToOneField(Entity, primary_key=True, on_delete=models.CASCADE)
+    entity = models.OneToOneField(Entity, primary_key=True, related_name='game_component', on_delete=models.CASCADE)
     owner = models.ForeignKey(Entity, related_name='owned_games', on_delete=models.PROTECT)
     game_key = models.CharField(max_length=255, null=False)
 
@@ -88,13 +90,10 @@ class Player(models.Model):
     entity = models.OneToOneField(Entity, related_name='player_component', on_delete=models.CASCADE, primary_key=True)
     account = models.ForeignKey(Entity, related_name='player_entries', on_delete=models.CASCADE)
     game = models.ForeignKey(Entity, related_name='players', on_delete=models.CASCADE)
-    uuid = models.UUIDField(null=False, unique=True)
-    date_created = models.DateTimeField(null=False)
-    handle = models.CharField(max_length=255, blank=False, null=True)
-    ihandle = models.CharField(max_length=255, blank=False, null=True)
+    player_key = models.CharField(max_length=255, null=False)
 
     class Meta:
-        unique_together = (('account', 'game'), ('game', 'ihandle'))
+        unique_together = (('account', 'game'), )
 
 
 class Attribute(models.Model):
@@ -119,16 +118,34 @@ class ACLPermission(models.Model):
     name = models.CharField(max_length=50, null=False, blank=False, unique=True)
 
 
-class ACLEntry(models.Model):
+class AbstractACLEntry(models.Model):
+    mode = models.CharField(max_length=30, null=False, blank=True, default='')
+    deny = models.BooleanField(null=False, default=False)
+    permissions = models.ManyToManyField(ACLPermission, related_name='+')
+
+    class Meta:
+        abstract = True
+
+
+class ACLEntry(AbstractACLEntry):
     """
     Access Control List entries. All Entities define Access Permissions in their Entity Class properties,
     and these can be granted/explicitly denied to those in this list. 'Deny' takes precedence over allows.
     """
     resource = models.ForeignKey(Entity, related_name='acl_entries', on_delete=models.CASCADE)
     grantee = models.ForeignKey(Entity, related_name='acl_references', on_delete=models.CASCADE)
-    mode = models.CharField(max_length=30, null=False, blank=True, default='')
-    deny = models.BooleanField(null=False, default=False)
-    permissions = models.ManyToManyField(ACLPermission, related_name='entries')
+
+    class Meta:
+        unique_together = (('resource', 'grantee', 'mode', 'deny'),)
+        index_together = (('resource', 'deny'),)
+
+
+class SpecialACLEntry(AbstractACLEntry):
+    """
+    Used for special ACL entries such as 'Everyone' or 'Authenticated Users'.
+    """
+    resource = models.ForeignKey(Entity, related_name='sacl_entries', on_delete=models.CASCADE)
+    grantee = models.PositiveSmallIntegerField(default=0, null=False)
 
     class Meta:
         unique_together = (('resource', 'grantee', 'mode', 'deny'),)

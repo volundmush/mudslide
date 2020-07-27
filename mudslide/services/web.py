@@ -94,12 +94,12 @@ class WebService(BaseService):
 
     def __init__(self):
         super().__init__()
-        self.task = None
+        #self.task = None
         self.config = self.app.config.hyper_config
         self.asgi_app = None
         self.consumer_classes = dict()
 
-    async def setup(self):
+    def setup(self):
         self.consumer_classes = self.app.classes['consumers']
         self.asgi_app = ProtocolTypeRouter(self.get_protocol_router_config())
 
@@ -122,5 +122,5 @@ class WebService(BaseService):
 
     async def start(self):
         from hypercorn.asyncio import serve
-        self.task = self.app.loop.create_task(serve(self.asgi_app, self.config))
-
+        web_app = serve(self.asgi_app, self.config)
+        await web_app

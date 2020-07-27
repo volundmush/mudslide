@@ -26,7 +26,7 @@ class InputService(BaseService):
     def __init__(self):
         self.containers = dict()
 
-    async def setup(self):
+    def setup(self):
         for k, v in self.app.classes.items():
             if k.startswith('commands_'):
                 pfx, name = k.split('_', 1)
@@ -51,7 +51,9 @@ class InputService(BaseService):
             print("BAD COMMAND")
             return
         new_cmd = cmd(conn, raw, match)
-        self.app.loop.create_task(new_cmd.execute())
+        print(new_cmd)
+        await new_cmd.execute()
+        #self.app.loop.create_task(new_cmd.execute())
 
     async def unrecognized_input(self, connection, cmd, *args, **kwargs):
         pass

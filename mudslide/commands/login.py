@@ -9,6 +9,7 @@ class ConnectCommand(Command):
             raise CmdError('Usage: create <username or email>=<password>')
         service = self.app.services['account']
         account = await service.process_authentication(self.caller, username, password)
+        print(account)
         await self.caller.game_login(account)
 
 
@@ -19,6 +20,7 @@ class CreateCommand(Command):
         if not ((username := self.match.get('lhs')) and (password := self.match.get('rhs'))):
             raise CmdError('Usage: create <username>=<password>')
         account = await self.app.services['account'].create_account(self.caller, username, password)
+        print(account)
         await self.caller.game_login(account)
 
 
