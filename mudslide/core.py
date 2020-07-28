@@ -1,3 +1,4 @@
+import re
 from honahlee.core import BaseConfig as HonahleeConfig
 from hypercorn.config import Config as HyperConfig
 
@@ -168,3 +169,7 @@ class BaseConfig(HonahleeConfig):
     def _init_hypercorn(self):
         inter = self.interfaces.get(self.web_servers.get('interface'))
         self.hyper_config.bind = [f"{inter}:{self.web_servers.get('port')}"]
+
+    def _config_regex(self):
+        super()._config_regex()
+        self.regex['entity_name'] = re.compile(r"^(\w+|\.|-|')+( (\w+|\.|-|')+)*$")
