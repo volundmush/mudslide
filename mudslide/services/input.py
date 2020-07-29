@@ -51,9 +51,7 @@ class InputService(BaseService):
             print("BAD COMMAND")
             return
         new_cmd = cmd(conn, raw, match)
-        print(new_cmd)
-        await new_cmd.execute()
-        #self.app.loop.create_task(new_cmd.execute())
+        self.app.loop.create_task(new_cmd.execute())
 
     async def unrecognized_input(self, connection, cmd, *args, **kwargs):
         pass
