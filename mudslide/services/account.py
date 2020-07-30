@@ -2,7 +2,7 @@ from django.db import transaction, IntegrityError
 from honahlee.core import BaseService, BaseBackend
 from mudslide.models import Account
 from honahlee.utils.time import duration_from_string, utcnow
-from honahlee.utils.text import partial_match, iter_to_string
+from mudslide.utils.text import partial_match, iter_to_string
 from honahlee.utils.misc import make_iter
 
 from django.contrib.auth.hashers import (
@@ -16,7 +16,9 @@ class AccountService(BaseService):
     backend_key = 'account'
 
     async def create_account(self, connection, username, password):
-        return await self.backend.async_create_account(username, password)
+        account = await self.backend.async_create_account(username, password)
+        self.app.config.logs['application'].info(f"CONNECTION: {connection} - Account Created: {account}")
+        return account
 
     async def rename_account(self, connection, account, new_name, exact=False, ignore_priv=False):
         if not (enactor := connection.get_account()) or (not ignore_priv and not enactor.check_lock("pperm(Admin)")):
@@ -72,10 +74,10 @@ class AccountService(BaseService):
         account.db._ban_reason = reason
         entities = {'enactor': enactor, 'account': account}
         # amsg.BanMessage(entities, duration=time_format(duration.total_seconds(), style=2),
-                        ban_date=ban_date.strftime('%c'), reason=reason).send()
+                        #ban_date=ban_date.strftime('%c'), reason=reason).send()
         account.force_disconnect(reason)
 
-    def unban_account(self, session, account):
+    async def unban_account(self, session, account):
         if not (enactor := session.get_account()) or not enactor.check_lock("pperm(Moderator)"):
             raise ValueError("Permission denied.")
         account = await self.find_account(account)
@@ -86,7 +88,7 @@ class AccountService(BaseService):
         entities = {'enactor': enactor, 'account': account}
         # amsg.UnBanMessage(entities).send()
 
-    def password_account(self, session, account, new_password, ignore_priv=False, old_password=None):
+    async def password_account(self, session, account, new_password, ignore_priv=False, old_password=None):
         if not (enactor := session.get_account()) or (not ignore_priv and not enactor.check_lock("oper(account_password)")):
             raise ValueError("Permission denied.")
         if ignore_priv and not account.check_password(old_password):
@@ -98,8 +100,10 @@ class AccountService(BaseService):
         account.db._date_password_changed = utcnow()
         entities = {'enactor': enactor, 'account': account}
         if old_password:
+            pass
             # amsg.PasswordMessagePrivate(entities).send()
         else:
+            pass
             # amsg.PasswordMessageAdmin(entities, password=new_password).send()
 
     async def disconnect_account(self, session, account, reason):
@@ -253,7 +257,7 @@ class AccountService(BaseService):
     async def examine_account(self, session, account):
         if not (enactor := session.get_account()) or not enactor.check_lock("pperm(Admin)"):
             raise ValueError("Permission denied.")
-        account = self.find_account(account)
+        account = await self.find_account(account)
         return account.render_examine(enactor)
 
     async def all(self):

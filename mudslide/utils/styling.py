@@ -1,42 +1,18 @@
 import math, datetime
-from django.conf import settings
 
-from evennia.utils.evtable import EvTable
-from evennia.utils.ansi import ANSIString
-from evennia.utils.utils import lazy_property, class_from_module
+from mudslide.utils.evtable import EvTable
+from mudslide.utils.ansi import ANSIString
+
 
 class Styler:
-    fallback = dict()
-    loaded = False
-    width = 78
-    fallback_cache = dict()
+    app = None
 
-
-    def __init__(self, viewer):
-        """
-        It's important to keep in mind that viewer can totally be None.
-        """
+    def __init__(self, connection):
+        self.connection = connection
         self.cache = dict()
-        if viewer and hasattr(viewer, 'get_account'):
-            self.viewer = viewer.get_account()
-        else:
-            self.viewer = None
-        if not self.loaded:
-            self.load()
-        if self.viewer:
-            self.options = self.viewer.options
-        else:
-            self.options = self.fallback
-
-    @classmethod
-    def load(cls):
-        for key, data in settings.OPTIONS_ACCOUNT_DEFAULT.items():
-            cls.fallback[key] = data[2]
-        cls.width = settings.CLIENT_DEFAULT_WIDTH
-        cls.loaded = True
 
     def styled_columns(self, columns):
-        return f"|{self.options.get('column_names_color')}{columns}|n"
+        return f"|{self.connection.options.get('column_names_color')}{columns}|n"
 
     def styled_table(self, *args, **kwargs):
         """
@@ -53,8 +29,8 @@ class Styler:
                 or incomplete and ready for use with `.add_row` or `.add_collumn`.
 
         """
-        border_color = self.options.get("border_color")
-        column_color = self.options.get("column_names_color")
+        border_color = self.connection.options.get("border_color")
+        column_color = self.connection.options.get("column_names_color")
 
         colornames = ["|%s%s|n" % (column_color, col) for col in args]
 
@@ -126,9 +102,9 @@ class Styler:
                     return found
 
         colors = dict()
-        colors["border"] = self.options.get("border_color")
-        colors["headertext"] = self.options.get(f"{mode}_text_color")
-        colors["headerstar"] = self.options.get(f"{mode}_star_color")
+        colors["border"] = self.connection.options.get("border_color")
+        colors["headertext"] = self.connection.options.get(f"{mode}_text_color")
+        colors["headerstar"] = self.connection.options.get(f"{mode}_star_color")
 
         width = self.width
         if edge_character:
@@ -149,7 +125,7 @@ class Styler:
         else:
             center_string = ""
 
-        fill_character = self.options.get("%s_fill" % mode)
+        fill_character = self.connection.options.get("%s_fill" % mode)
 
         remain_fill = width - len(center_string)
         if remain_fill % 2 == 0:
@@ -206,18 +182,6 @@ class Styler:
             kwargs["mode"] = "footer"
         return self._render_decoration(*args, **kwargs)
 
-    @lazy_property
-    def blank_footer(self):
-        return self.styled_footer()
-
-    @lazy_property
-    def blank_separator(self):
-        return self.styled_separator()
-
-    @lazy_property
-    def blank_header(self):
-        return self.styled_header()
-
     time_formats = {
         'full': '%c',
         'standard': '%b %d %I:%M%p %Z',
@@ -227,5 +191,5 @@ class Styler:
         if not time_data:
             time_data = datetime.datetime.utcnow()
         if not tz:
-            tz = self.options.get('timezone')
+            tz = self.connection.options.get('timezone')
         return time_data.astimezone(tz).strftime(time_format)

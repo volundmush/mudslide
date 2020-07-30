@@ -11,6 +11,14 @@ class AsyncGameConsumerMixin:
     # This is a class property that will be set to the CORE APPLICATION.
     app = None
 
+    @lazy_property
+    def styling(self):
+        return self.app.classes['mudslide']['styler'](self)
+
+    @lazy_property
+    def options(self):
+        return self.app.classes['mudslide']['option'](self)
+
     def game_setup(self):
         self.game_id = None
         self.logged_in = None
@@ -23,12 +31,15 @@ class AsyncGameConsumerMixin:
         Args:
             account (User): The Django User account to bind to this Consumer.
         """
-        await login(self.scope, account)
+        await login(self.scope, account.account_model)
         self.logged_in = True
         await self.at_game_login()
 
     async def at_game_login(self):
-        pass
+        await self.send({
+            'type': 'text',
+            'data': f'You have successfully logged in as {self.scope["user"]}'
+        })
 
     async def game_logout(self):
         await logout(self.scope)
@@ -78,15 +89,19 @@ class AsyncGameConsumerMixin:
             'data': self.app.services['connect_screen'].render(self)
         })
 
-    @lazy_property
-    def cmd(self):
-        handler = self.app.classes['mudslide']['cmdhandler']
-        return handler(self)
-
-    @lazy_property
-    def cmdset(self):
-        handler = self.app.classes['mudslide']['cmdsethandler']
-        return handler(self)
+    def msg(self, text: str):
+        self.scope['to_protocol'].put_nowait({
+            'type': 'text',
+            'data': text
+        })
 
     def is_authenticated(self):
-        return False
+        return self.logged_in
+
+    def see_debug(self):
+        return self.is_superuser()
+
+    def is_superuser(self):
+        if not self.logged_in:
+            return False
+        return self.scope['user'].is_superuser

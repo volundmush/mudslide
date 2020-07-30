@@ -1,4 +1,4 @@
-from mudslide.commands.base import Command
+from . base import Command, CmdError
 
 
 class AdministrationCommand(Command):
@@ -7,7 +7,7 @@ class AdministrationCommand(Command):
     service_key = 'account'
 
 
-class CmdAccount(AdministrationCommand):
+class AccountCommand(AdministrationCommand):
     """
     General command for controlling game accounts.
     Note that <account> accepts either username or email address.
@@ -49,7 +49,7 @@ class CmdAccount(AdministrationCommand):
     """
     name = '-account'
 
-    func_options = {
+    switch_options = {
         None: {'usage': "-account [<account>]"},
         'list': {'usage': '-account/list'},
         'create': {'usage': '-account/create <username>=<password>'},
@@ -66,41 +66,41 @@ class CmdAccount(AdministrationCommand):
     async def func(self):
         if not self.args:
             self.args = self.caller
-        self.msg(self.service.examine_account(self.caller, self.args))
+        self.caller.msg(await self.service.examine_account(self.caller, self.args))
 
     async def func_list(self):
-        self.msg(self.service.list_accounts(self.caller))
+        self.caller.msg(await self.service.list_accounts(self.caller))
 
     async def func_create(self):
         if not self.rhs and self.lhs:
             self.syntax_error()
-        self.service.create_account(self.caller, self.lhs, self.rhs)
+        await self.service.create_account(self.caller, self.lhs, self.rhs)
 
     async def func_disable(self):
         if not self.rhs and self.lhs:
             self.syntax_error()
-        self.service.disable_account(self.caller, self.lhs, self.rhs)
+        await self.service.disable_account(self.caller, self.lhs, self.rhs)
 
     async def func_enable(self):
-        self.service.enable_account(self.caller, self.lhs)
+        await self.service.enable_account(self.caller, self.lhs)
 
     async def func_password(self):
         if not self.rhs and self.lhs:
             self.syntax_error()
-        self.service.password_account(self.caller, self.lhs, self.rhs)
+        await self.service.password_account(self.caller, self.lhs, self.rhs)
 
     async def func_email(self):
         if not self.rhs and self.lhs:
             self.syntax_error()
-        self.service.email_account(self.caller, self.lhs, self.rhs)
+        await self.service.email_account(self.caller, self.lhs, self.rhs)
 
     async def func_boot(self):
         if not self.rhs and self.lhs:
             self.syntax_error()
-        self.service.disconnect_account(self.caller, self.lhs, self.rhs)
+        await self.service.disconnect_account(self.caller, self.lhs, self.rhs)
 
 
-class CmdAccess(AdministrationCommand):
+class PermCommand(AdministrationCommand):
     """
     Displays and manages information about Account access permissions.
 
@@ -124,32 +124,31 @@ class CmdAccess(AdministrationCommand):
             Silly verification string required for accident prevention.
             |rDANGEROUS.|n
     """
-    key = "@access"
-    locks = "cmd:pperm(Helper)"
-    func_rules = {
-        'directory': dict(),
+    name = "-perm"
+
+    switch_rules = {
         'super': {
             'syntax': "<account>=SUPER DUPER",
-            'lhs_req': True,
-            'rhs_req': True
         },
         'grant': {
             'syntax': "<account>=<permission>",
-            'lhs_req': True,
-            'rhs_req': True
         },
-        'all': dict(),
         'revoke': {
             'syntax': '<account>=<permission>',
-            'lhs_req': True,
-            'rhs_req': True
         }
     }
-    func_options = ['directory', 'super', 'grant', 'all', 'revoke']
+
+    switch_options = {
+        'grant': None,
+        'directory': None,
+        'revoke': None,
+        'all': None,
+        'super': None
+    }
 
     async def func(self):
         account = self.args if self.args else self.account
-        self.msg(self.service.access_account(self.caller, account))
+        self.caller.msg(self.service.access_account(self.caller, account))
 
     async def func_grant(self):
         if not self.rhs and self.lhs:
@@ -167,90 +166,13 @@ class CmdAccess(AdministrationCommand):
         self.service.toggle_super(self.caller, self.lhs)
 
     async def func_all(self):
-        self.msg(self.service.list_permissions(self.caller))
+        self.caller.msg(self.service.list_permissions(self.caller))
 
     async def func_directory(self):
-        self.msg(self.service.permissions_directory(self.caller))
+        self.caller.msg(self.service.permissions_directory(self.caller))
 
 
-class CmdCharacter(AdministrationCommand):
-    """
-    General character administration command.
-
-    Usage:
-        @character <character>
-            Examines a character and displays details.
-
-        @character/list
-            Lists all characters.
-
-        @character/create <account>=<character name>
-            Creates a new character for <account>.
-
-        @character/rename <character>=<new name>
-            Renames a character.
-
-        @character/puppet <character>
-            Takes control of a character that you don't own.
-
-        @character/transfer <character>=<new account>
-            Transfers a character to a different account.
-
-        @character/archive <character>=<verify name>
-            Archives / soft-deletes a character. They still exist for
-            database purposes, but can no longer be used. Archived characters
-            still have names, but the names  are freed for use.
-
-        @character/restore <character>[=<new name>]
-            Archived characters CAN be brought back into play. If the namespace
-            already has re-used the character name, a new alternate name can be
-            provided. This command is special and can only search archived
-            characters. You may need to target them by #DBREF instead of their
-            name if there are multiple matches.
-
-        @character/old
-            List all archived characters.
-    """
-    key = '@character'
-    locks = "cmd:pperm(Helper)"
-    func_options = ('create', 'archive', 'restore', 'rename', 'list',  'puppet', 'transfer', 'old')
-    controller_key = 'character'
-    func_rules = {
-        'create': "<account>=<character name>",
-        'archive': '<character>',
-        'restore': '<character>[=<new name>]',
-        'rename': '<character>=<new name>',
-        'puppet': '<character>',
-        'transfer': '<character>=<new account>'
-    }
-
-    async def func(self):
-        self.msg(self.service.examine_character(self.caller, self.args))
-
-    async def func_create(self):
-        self.service.create_character(self.caller, self.lhs, self.rhs)
-
-    async def func_restore(self):
-        self.service.restore_character(self.caller, self.lhs, self.rhs)
-
-    async def func_archive(self):
-        self.service.archive_character(self.caller, self.lhs, self.rhs)
-
-    async def func_puppet(self):
-        self.service.puppet_character(self.caller, self.args)
-
-    async def func_rename(self):
-        self.service.rename_character(self.caller, self.lhs, self.rhs)
-
-    async def func_transfer(self):
-        self.service.transfer_character(self.caller, self.lhs, self.rhs)
-
-    async def func_old(self):
-        self.msg(self.service.list_characters(self.caller, archived=True))
-
-    async def func_list(self):
-        self.msg(self.service.list_characters(self.caller))
-
+"""
 
 class _CmdAcl(UnixCommand):
     locks = "cmd:all()"
@@ -295,4 +217,5 @@ class CmdGetAcl(_CmdAcl):
 
     async def func(self):
         obj = self.service.find_resource(self.caller, self.opts.resource[0])
-        self.msg(f"I FOUND: {obj}")
+        self.caller.msg(f"I FOUND: {obj}")
+"""

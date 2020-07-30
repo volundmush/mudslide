@@ -754,6 +754,7 @@ class TelnetAsgiProtocol(AsgiAdapterProtocol):
         This isn't NECESSARILY events just from the ASGI app. It might also be outgoing
         messages from the this protocol instance.
         """
+        print(f"PROCESSING EVENT: {event}")
         if event["type"] == "text":
             await self.send_text(event["data"])
         elif event["type"] == "prompt":

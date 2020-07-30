@@ -14,6 +14,7 @@ class BaseConfig(HonahleeConfig):
         self.django_settings = {k: v for k, v in g.__dict__.items() if k.isupper()}
         self.django_settings_final = None
         self.hyper_config = HyperConfig()
+        self.user_options = dict()
 
     def setup(self):
         super().setup()
@@ -22,6 +23,7 @@ class BaseConfig(HonahleeConfig):
         self._init_django()
         self._config_web_servers()
         self._init_hypercorn()
+        self._config_user_options()
 
     def _config_classes(self):
         super()._config_classes()
@@ -33,6 +35,9 @@ class BaseConfig(HonahleeConfig):
         self.classes['services']['entity'] = 'mudslide.services.entity.EntityService'
         self.classes['services']['account'] = 'mudslide.services.account.AccountService'
         self.classes['services']['game'] = 'mudslide.services.game.GameService'
+
+        # Backends
+        self.classes['backends']['account'] = 'mudslide.services.account.AccountBackend'
 
         # Protocols
         self.classes['protocols']['telnet'] = 'mudslide.protocols.telnet.TelnetAsgiProtocol'
@@ -48,13 +53,24 @@ class BaseConfig(HonahleeConfig):
         self.classes['entities']['game'] = 'mudslide.entities.game.GameEntity'
         self.classes['entities']['player'] = 'mudslide.entities.player.PlayerEntity'
 
+        # Listeners
+        self.classes['listeners']['python'] = 'mudslide.utils.listeners.PythonConsoleListener'
+
         # Login Commands
         self.classes['commands_login']['connect'] = 'mudslide.commands.login.ConnectCommand'
         self.classes['commands_login']['create'] = 'mudslide.commands.login.CreateCommand'
         self.classes['commands_login']['help'] = 'mudslide.commands.login.HelpCommand'
         self.classes['commands_login']['look'] = 'mudslide.commands.login.LookCommand'
 
+        # Minus commands
+        self.classes['commands_minus']['-py'] = 'mudslide.commands.system.PyCommand'
+        self.classes['commands_minus']['-account'] = 'mudslide.commands.account.AccountCommand'
+
         # Auth Commands go here.
+
+        # Misc Classes go here
+        self.classes['mudslide']['styler'] = 'mudslide.utils.styling.Styler'
+        self.classes['mudslide']['option'] = 'mudslide.utils.options.OptionHandler'
 
     def _config_django(self):
         d = self.django_settings
@@ -173,3 +189,6 @@ class BaseConfig(HonahleeConfig):
     def _config_regex(self):
         super()._config_regex()
         self.regex['entity_name'] = re.compile(r"^(\w+|\.|-|')+( (\w+|\.|-|')+)*$")
+
+    def _config_user_options(self):
+        pass

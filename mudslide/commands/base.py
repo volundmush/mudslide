@@ -1,6 +1,6 @@
 import re
 import traceback
-from honahlee.utils.text import partial_match
+from mudslide.utils.text import partial_match
 
 
 class CmdError(Exception):
@@ -26,9 +26,12 @@ class Command:
         self.service = self.app.services.get(self.service_key, None)
         self.chosen_switch = None
         self.extra_switches = list()
-        self.args = match['args'].strip()
-        self.lhs = match['lhs'].strip()
-        self.rhs = match['rhs'].strip()
+        self.lhs = None
+        self.rhs = None
+        self.args = None
+        for field in ('args', 'lhs', 'rhs'):
+            if (result := match.get(field, None)) is not None:
+                setattr(self, field, result.strip())
 
     @classmethod
     def access(cls, caller):
@@ -72,13 +75,13 @@ class Command:
                 self.caller.msg(text=str(e))
             return
         except Exception as e:
+            tb = traceback.format_exc()
             if self.caller:
-                if self.app.config.debug_mode:
-                    traceback.print_exc(file=self.caller)
+                if self.caller.see_debug():
+                    self.caller.msg(text=f"ERROR: Command {self.name} experienced an error.\n{tb}")
                 else:
-                    self.caller.msg(text=f"Sorry, the {self.name} command encountered an error. Please contact coder.")
-                    traceback.print_exc(file=self.app.config.logs['application'])
-
+                    self.caller.msg(text=f"Sorry, the {self.name} command encountered an error. Please contact acoder.")
+                    self.app.config.logs['application'].error(f"{self.caller.debug()} called Command {self.name} with args: {self.match} resulting in:\n{tb}")
 
     async def at_post_execute(self):
         pass
