@@ -22,7 +22,7 @@ import functools
 import re
 from collections import OrderedDict
 
-from django.conf import settings
+from mudslide.settings import settings
 
 from honahlee.utils.misc import to_str
 
