@@ -32,6 +32,7 @@ class AnsiSettings:
         # If set True, the above color settings *replace* the default |-style color markdown
         # rather than extend it.
         self.COLOR_NO_DEFAULT = False
+        self.CLIENT_DEFAULT_WIDTH = 78
 
 
 settings = AnsiSettings()

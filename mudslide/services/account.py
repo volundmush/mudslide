@@ -240,25 +240,38 @@ class AccountService(BaseService):
         message.append(styling.blank_footer)
         return '\n'.join(str(l) for l in message)
 
-    async def list_accounts(self, session):
-        if not (enactor := session.get_account()) or not enactor.check_lock("pperm(Admin)"):
+    async def list_accounts(self, connection):
+        if not (conn_account := connection.get_account()):
             raise ValueError("Permission denied.")
-        if not (accounts := AthanorAccount.objects.filter_family()):
+        if not conn_account.is_staff():
+            raise ValueError("Permission denied.")
+        if not (accounts := await self.all()):
             raise ValueError("No accounts to list!")
-        styling = enactor.styler
-        message = [
-            styling.styled_header(f"Account Listing")
-        ]
-        for acc in accounts:
-            message.extend(acc.render_list_section(enactor, styling))
-        message.append(styling.blank_footer)
+        message = list()
+        if connection.uses_screenreader():
+            pass
+        else:
+            styling = connection.styler
+            message.append(styling.styled_header(f"Account Listing"))
+            for acc in accounts:
+                message.extend(acc.render_list_section(connection, styling))
+            message.append(styling.styled_footer())
         return '\n'.join(str(l) for l in message)
 
-    async def examine_account(self, session, account):
-        if not (enactor := session.get_account()) or not enactor.check_lock("pperm(Admin)"):
+    async def examine_account(self, connection, account):
+        if not (conn_account := connection.get_account()):
             raise ValueError("Permission denied.")
-        account = await self.find_account(account)
-        return account.render_examine(enactor)
+        if isinstance(account, str):
+            if conn_account.is_staff():
+                account = await self.find_account(account)
+            else:
+                raise ValueError("Permission denied.")
+        else:
+            account = conn_account
+        if connection.uses_screenreader():
+            pass
+        else:
+            return account.render_examine(connection)
 
     async def all(self):
         return await self.backend.all()

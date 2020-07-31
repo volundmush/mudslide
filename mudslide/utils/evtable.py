@@ -114,7 +114,7 @@ appear on both sides of the table string.
 
 """
 
-from django.conf import settings
+from mudslide.settings import settings
 from textwrap import TextWrapper
 from copy import deepcopy, copy
 from honahlee.utils.misc import is_iter

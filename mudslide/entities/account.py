@@ -20,3 +20,6 @@ class AccountEntity(BaseEntity):
 
     def is_superuser(self):
         return self.account_model.is_superuser
+
+    def render_examine(self, viewer):
+        return "NOT YET IMPLEMENTED!"

@@ -23,6 +23,7 @@ class AsyncGameConsumerMixin:
         self.game_id = None
         self.logged_in = None
         self.conn_id = None
+        self.account = None
 
     async def game_login(self, account):
         """
@@ -33,6 +34,7 @@ class AsyncGameConsumerMixin:
         """
         await login(self.scope, account.account_model)
         self.logged_in = True
+        self.account = account
         await self.at_game_login()
 
     async def at_game_login(self):
@@ -44,6 +46,7 @@ class AsyncGameConsumerMixin:
     async def game_logout(self):
         await logout(self.scope)
         self.logged_in = False
+        self.account = None
 
     async def game_close(self, reason):
         """
@@ -54,6 +57,8 @@ class AsyncGameConsumerMixin:
             reason (str): The reason for this closing.
         """
         self.app.services['connections'].unregister_connection(self)
+        if self.logged_in:
+            await self.game_logout()
         raise StopConsumer(reason)
 
     async def game_input(self, cmd, *args, **kwargs):
@@ -105,3 +110,11 @@ class AsyncGameConsumerMixin:
         if not self.logged_in:
             return False
         return self.scope['user'].is_superuser
+
+    def uses_screenreader(self):
+        return False
+
+    def get_account(self):
+        if self.logged_in:
+            return self.account
+        return None

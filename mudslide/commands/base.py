@@ -74,6 +74,10 @@ class Command:
             if self.caller:
                 self.caller.msg(text=str(e))
             return
+        except ValueError as e:
+            if self.caller:
+                self.caller.msg(text=str(e))
+            return
         except Exception as e:
             tb = traceback.format_exc()
             if self.caller:

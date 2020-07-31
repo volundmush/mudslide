@@ -64,12 +64,12 @@ class AccountCommand(AdministrationCommand):
     }
 
     async def func(self):
-        if not self.args:
-            self.args = self.caller
-        self.caller.msg(await self.service.examine_account(self.caller, self.args))
+        results = await self.service.examine_account(self.caller, self.args)
+        self.caller.msg(results)
 
     async def func_list(self):
-        self.caller.msg(await self.service.list_accounts(self.caller))
+        results = await self.service.examine_account(self.caller, self.args)
+        self.caller.msg(results)
 
     async def func_create(self):
         if not self.rhs and self.lhs:
