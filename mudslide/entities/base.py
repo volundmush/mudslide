@@ -1,3 +1,5 @@
+from honahlee.utils.time import utcnow
+
 class BaseEntity:
     app = None
     name_type = None
@@ -63,3 +65,18 @@ class BaseEntity:
 
     def represents_NA(self, accessor):
         return accessor == self
+
+    def get_attribute(self, category, name, default=None, return_obj=False):
+        if not (found := self.model.attributes.filter(category=category, name=name).first()):
+            return default
+        if return_obj:
+            return found
+        else:
+            return found.value
+
+    def set_attribute(self, category, name, value):
+        if not (attr := self.model.attributes.filter(category=category, name=name).first()):
+            attr = self.model.attributes.create(category=category, name=name, date_created=utcnow(), value=value)
+        else:
+            attr.value = value
+            attr.save()

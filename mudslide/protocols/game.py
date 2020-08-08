@@ -24,6 +24,7 @@ class AsyncGameConsumerMixin:
         self.logged_in = None
         self.conn_id = None
         self.account = None
+        self.options = dict()
 
     async def game_login(self, account):
         """

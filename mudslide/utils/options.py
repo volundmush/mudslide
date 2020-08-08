@@ -1,22 +1,11 @@
 import datetime
 from mudslide.utils.ansi import strip_ansi
 from mudslide.utils.validatorfuncs import _TZ_DICT
+from mudslide.utils import validatorfuncs
 from evennia.utils.utils import crop
-from evennia.utils import validatorfuncs
 
 
-class OptionHandler:
-    app = None
-
-    def __init__(self, connection):
-        self.connection = connection
-        self.options = dict()
-
-    def get(self, option):
-        pass
-
-
-class BaseOption(object):
+class BaseOption:
     """
     Abstract Class to deal with encapsulating individual Options. An Option has
     a name/key, a description to display in relevant commands and menus, and a
@@ -37,102 +26,34 @@ class BaseOption(object):
     def __repr__(self):
         return str(self)
 
-    def __init__(self, handler, key, description, default):
-        """
-
-        Args:
-            handler (OptionHandler): The OptionHandler that 'owns' this Option.
-            key (str): The name this will be used for storage in a dictionary.
-                Must be unique per OptionHandler.
-            description (str): What this Option's text will show in commands and menus.
-            default: A default value for this Option.
-
-        """
-        self.handler = handler
+    def __init__(self, service, key, description, default):
+        self.service = service
         self.key = key
         self.default_value = default
         self.description = description
 
-        # Value Storage contains None until the Option is loaded.
-        self.value_storage = None
+    def get(self, connection, ignore_temporary=False):
+        if self.key in connection.options and not ignore_temporary:
+            return connection.options[self.key]
+        if not connection.logged_in:
+            return self.default_value
+        acc = connection.get_account()
+        return acc.get_option(self)
 
-        # And it's not loaded until it's called upon to spit out its contents.
-        self.loaded = False
-
-    @property
-    def changed(self):
-        return self.value_storage != self.default_value
-
-    @property
-    def default(self):
-        return self.default_value
-
-    @property
-    def value(self):
-        if not self.loaded:
-            self.load()
-        if self.loaded:
-            return self.value_storage
+    def set(self, connection, value, temporary=False):
+        final_value = self.validate(connection, value)
+        if temporary:
+            connection.options[self.key] = final_value
         else:
-            return self.default
+            self.save(connection, final_value)
+        return final_value
 
-    @value.setter
-    def value(self, value):
-        self.set(value)
-
-    def set(self, value, **kwargs):
-        """
-        Takes user input and stores appropriately. This method allows for
-        passing extra instructions into the validator.
-
-        Args:
-            value (str): The new value of this Option.
-            kwargs (any): Any kwargs will be passed into
-                `self.validate(value, **kwargs)` and `self.save(**kwargs)`.
-
-        """
-        final_value = self.validate(value, **kwargs)
-        self.value_storage = final_value
-        self.loaded = True
-        self.save(**kwargs)
-
-    def load(self):
-        """
-        Takes the provided save data, validates it, and gets this Option ready to use.
-
-        Returns:
-            Boolean: Whether loading was successful.
-
-        """
-        loadfunc = self.handler.loadfunc
-        load_kwargs = self.handler.load_kwargs
-
-        try:
-            self.value_storage = self.deserialize(
-                loadfunc(self.key, default=self.default_value, **load_kwargs)
-            )
-        except Exception:
-            logger.log_trace()
-            return False
-        self.loaded = True
-        return True
-
-    def save(self, **kwargs):
-        """
-        Stores the current value using `.handler.save_handler(self.key, value, **kwargs)`
-        where `kwargs` are a combination of those passed into this function and
-        the ones specified by the `OptionHandler`.
-
-        Keyword args:
-            any (any): Not used by default. These are passed in from self.set
-                and allows the option to let the caller customize saving by
-                overriding or extend the default save kwargs
-
-        """
-        value = self.serialize()
-        save_kwargs = {**self.handler.save_kwargs, **kwargs}
-        savefunc = self.handler.savefunc
-        savefunc(self.key, value=value, **save_kwargs)
+    def save(self, connection, final_value):
+        if not connection.logged_in:
+            return
+        serialized = self.serialize(connection, final_value)
+        acc = connection.get_account()
+        acc.save_option(self, serialized)
 
     def deserialize(self, save_data):
         """
@@ -151,15 +72,15 @@ class BaseOption(object):
         """
         return save_data
 
-    def serialize(self):
+    def serialize(self, value):
         """
-        Serializes the save data for Attribute storage.
+        Serializes the save data for JSON Attribute storage.
 
         Returns:
-            any (any): Whatever is best for storage.
+            value (any): The value being serialized to JSON.
 
         """
-        return self.value_storage
+        pass
 
     def validate(self, value, **kwargs):
         """

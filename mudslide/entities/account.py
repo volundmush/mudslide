@@ -7,6 +7,7 @@ class AccountEntity(BaseEntity):
     def __init__(self, model):
         super().__init__(model)
         self.account_model = model.account_component
+        self.options = dict()
 
     def rename(self, new_name):
         """
@@ -23,3 +24,9 @@ class AccountEntity(BaseEntity):
 
     def render_examine(self, viewer):
         return "NOT YET IMPLEMENTED!"
+
+    def save_option(self, option, serialized):
+        pass
+
+    def get_option(self, option):
+        pass
