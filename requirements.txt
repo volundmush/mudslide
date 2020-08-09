@@ -1,5 +1,5 @@
 honahlee
-channels == 2.4.0
-ujson >= 3.0.0
-hypercorn == 0.10.1
-fastapi == 0.60.1
+crossbar
+ujson >= 3.1.0
+hypercorn >= 0.10.1
+fastapi >= 0.60.1
